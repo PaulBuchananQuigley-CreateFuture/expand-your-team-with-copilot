@@ -40,6 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let searchQuery = "";
   let currentDay = "";
   let currentTimeRange = "";
+  let shareHighlightDone = false; // ensure highlight only runs once on first load
 
   // Authentication state
   let currentUser = null;
@@ -402,6 +403,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Apply search and filter, and handle weekend filter in client
       displayFilteredActivities();
+      // Highlight a shared activity on the first page load
+      if (!shareHighlightDone) {
+        shareHighlightDone = true;
+        highlightSharedActivity();
+      }
     } catch (error) {
       activitiesList.innerHTML =
         "<p>Failed to load activities. Please try again later.</p>";
@@ -662,17 +668,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.body.appendChild(popover);
 
-    // Position the popover above the trigger button
+    // Position the popover above the trigger button using the actual rendered dimensions
     const rect = triggerButton.getBoundingClientRect();
-    const popoverWidth = 200;
-    let left = rect.left + window.scrollX + rect.width / 2 - popoverWidth / 2;
-    left = Math.max(8, Math.min(left, window.innerWidth - popoverWidth - 8));
-    popover.style.left = `${left}px`;
-    popover.style.top = `${rect.top + window.scrollY - popover.offsetHeight - 8}px`;
-
-    // Recalculate vertical position after the popover is rendered
     requestAnimationFrame(() => {
-      popover.style.top = `${rect.top + window.scrollY - popover.offsetHeight - 8}px`;
+      const popoverWidth = popover.offsetWidth;
+      const popoverHeight = popover.offsetHeight;
+      let left = rect.left + window.scrollX + rect.width / 2 - popoverWidth / 2;
+      left = Math.max(8, Math.min(left, window.innerWidth - popoverWidth - 8));
+      popover.style.left = `${left}px`;
+      popover.style.top = `${rect.top + window.scrollY - popoverHeight - 8}px`;
     });
 
     // Copy link handler
@@ -707,24 +711,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const activityName = params.get("activity");
     if (!activityName) return;
 
-    // Wait for cards to be rendered, then scroll and highlight
-    const checkInterval = setInterval(() => {
-      const cards = activitiesList.querySelectorAll(".activity-card");
-      for (const card of cards) {
-        const heading = card.querySelector("h4");
-        if (heading && heading.textContent.trim() === activityName) {
-          clearInterval(checkInterval);
-          card.classList.add("highlighted");
-          card.scrollIntoView({ behavior: "smooth", block: "center" });
-          // Remove the highlight after a few seconds
-          setTimeout(() => card.classList.remove("highlighted"), 4000);
-          return;
-        }
+    // Cards are already in the DOM at this point; find and highlight
+    const cards = activitiesList.querySelectorAll(".activity-card");
+    for (const card of cards) {
+      const heading = card.querySelector("h4");
+      if (heading && heading.textContent.trim() === activityName) {
+        card.classList.add("highlighted");
+        card.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => card.classList.remove("highlighted"), 4000);
+        return;
       }
-    }, 200);
-
-    // Stop checking after 5 seconds to avoid running forever
-    setTimeout(() => clearInterval(checkInterval), 5000);
+    }
   }
 
   // Event listeners for search and filter
@@ -1002,5 +999,4 @@ document.addEventListener("DOMContentLoaded", () => {
   checkAuthentication();
   initializeFilters();
   fetchActivities();
-  highlightSharedActivity();
 });
