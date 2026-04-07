@@ -553,21 +553,26 @@ document.addEventListener("DOMContentLoaded", () => {
         </ul>
       </div>
       <div class="activity-card-actions">
-        ${
-          currentUser
-            ? `
-          <button class="register-button" data-activity="${name}" ${
-                isFull ? "disabled" : ""
-              }>
-            ${isFull ? "Activity Full" : "Register Student"}
-          </button>
-        `
-            : `
-          <div class="auth-notice">
-            Teachers can register students.
-          </div>
-        `
-        }
+        <div class="action-primary">
+          ${
+            currentUser
+              ? `
+            <button class="register-button" data-activity="${name}" ${
+                  isFull ? "disabled" : ""
+                }>
+              ${isFull ? "Activity Full" : "Register Student"}
+            </button>
+          `
+              : `
+            <div class="auth-notice">
+              Teachers can register students.
+            </div>
+          `
+          }
+        </div>
+        <button class="share-button" data-activity="${name}" aria-label="Share this activity">
+          📤 Share
+        </button>
       </div>
     `;
 
@@ -587,7 +592,139 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    // Add click handler for share button
+    const shareButton = activityCard.querySelector(".share-button");
+    shareButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      shareActivity(name, details, shareButton);
+    });
+
     activitiesList.appendChild(activityCard);
+  }
+
+  // Build a shareable URL for an activity
+  function buildShareUrl(activityName) {
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.searchParams.set("activity", activityName);
+    return url.toString();
+  }
+
+  // Share an activity using the Web Share API or a fallback popover
+  function shareActivity(name, details, triggerButton) {
+    const shareUrl = buildShareUrl(name);
+    const shareText = `Check out "${name}" at Mergington High School!\n${details.description}\nSchedule: ${formatSchedule(details)}`;
+
+    // Use native share dialog when available (e.g. mobile browsers)
+    if (navigator.share) {
+      navigator
+        .share({ title: name, text: shareText, url: shareUrl })
+        .catch(() => {}); // Ignore cancelled shares
+      return;
+    }
+
+    // Fallback: show a small share popover
+    showSharePopover(name, shareText, shareUrl, triggerButton);
+  }
+
+  // Show a popover with share options
+  function showSharePopover(name, shareText, shareUrl, triggerButton) {
+    // Remove any existing popover
+    const existing = document.getElementById("share-popover");
+    if (existing) {
+      existing.remove();
+      // If the same button triggered it, just close (toggle behaviour)
+      if (existing.dataset.activity === name) return;
+    }
+
+    const encodedText = encodeURIComponent(shareText);
+    const encodedUrl = encodeURIComponent(shareUrl);
+
+    const popover = document.createElement("div");
+    popover.id = "share-popover";
+    popover.className = "share-popover";
+    popover.dataset.activity = name;
+    popover.innerHTML = `
+      <div class="share-popover-title">Share this activity</div>
+      <a class="share-popover-item" href="https://wa.me/?text=${encodedText}%20${encodedUrl}" target="_blank" rel="noopener noreferrer">
+        <span class="share-icon-emoji">💬</span> WhatsApp
+      </a>
+      <a class="share-popover-item" href="https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}" target="_blank" rel="noopener noreferrer">
+        <span class="share-icon-emoji">🐦</span> Twitter / X
+      </a>
+      <a class="share-popover-item" href="https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}" target="_blank" rel="noopener noreferrer">
+        <span class="share-icon-emoji">📘</span> Facebook
+      </a>
+      <button class="share-popover-item share-copy-btn">
+        <span class="share-icon-emoji">🔗</span> Copy link
+      </button>
+    `;
+
+    document.body.appendChild(popover);
+
+    // Position the popover above the trigger button
+    const rect = triggerButton.getBoundingClientRect();
+    const popoverWidth = 200;
+    let left = rect.left + window.scrollX + rect.width / 2 - popoverWidth / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - popoverWidth - 8));
+    popover.style.left = `${left}px`;
+    popover.style.top = `${rect.top + window.scrollY - popover.offsetHeight - 8}px`;
+
+    // Recalculate vertical position after the popover is rendered
+    requestAnimationFrame(() => {
+      popover.style.top = `${rect.top + window.scrollY - popover.offsetHeight - 8}px`;
+    });
+
+    // Copy link handler
+    popover.querySelector(".share-copy-btn").addEventListener("click", () => {
+      navigator.clipboard
+        .writeText(buildShareUrl(name))
+        .then(() => {
+          showMessage("Link copied to clipboard!", "success");
+        })
+        .catch(() => {
+          showMessage("Could not copy link. Please copy it manually.", "error");
+        });
+      popover.remove();
+    });
+
+    // Close popover when clicking outside
+    function onOutsideClick(event) {
+      if (!popover.contains(event.target) && event.target !== triggerButton) {
+        popover.remove();
+        document.removeEventListener("click", onOutsideClick, true);
+      }
+    }
+    // Use capture so we see the click before it propagates
+    setTimeout(() => {
+      document.addEventListener("click", onOutsideClick, true);
+    }, 0);
+  }
+
+  // Highlight an activity card that was linked to via a share URL
+  function highlightSharedActivity() {
+    const params = new URLSearchParams(window.location.search);
+    const activityName = params.get("activity");
+    if (!activityName) return;
+
+    // Wait for cards to be rendered, then scroll and highlight
+    const checkInterval = setInterval(() => {
+      const cards = activitiesList.querySelectorAll(".activity-card");
+      for (const card of cards) {
+        const heading = card.querySelector("h4");
+        if (heading && heading.textContent.trim() === activityName) {
+          clearInterval(checkInterval);
+          card.classList.add("highlighted");
+          card.scrollIntoView({ behavior: "smooth", block: "center" });
+          // Remove the highlight after a few seconds
+          setTimeout(() => card.classList.remove("highlighted"), 4000);
+          return;
+        }
+      }
+    }, 200);
+
+    // Stop checking after 5 seconds to avoid running forever
+    setTimeout(() => clearInterval(checkInterval), 5000);
   }
 
   // Event listeners for search and filter
@@ -865,4 +1002,5 @@ document.addEventListener("DOMContentLoaded", () => {
   checkAuthentication();
   initializeFilters();
   fetchActivities();
+  highlightSharedActivity();
 });

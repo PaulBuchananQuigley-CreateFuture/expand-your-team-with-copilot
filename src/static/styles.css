@@ -183,13 +183,6 @@ section h3 {
   line-height: 1.4;
 }
 
-.activity-card-actions {
-  margin-top: auto;
-  padding-top: 10px;
-  display: flex;
-  justify-content: center;
-}
-
 /* Activity Tag */
 .activity-tag {
   position: absolute;
@@ -271,7 +264,7 @@ section h3 {
 .register-button {
   background: linear-gradient(145deg, var(--secondary), var(--secondary-dark));
   color: var(--secondary-text);
-  margin-top: 10px;
+  margin-top: 0;
   padding: 6px 12px;
   width: 100%;
   font-weight: bold;
@@ -466,6 +459,93 @@ button {
   border: 1px dashed var(--border);
   margin: 10px 0;
   font-size: 0.85rem;
+}
+
+/* Activity card actions layout */
+.activity-card-actions {
+  margin-top: auto;
+  padding-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-primary {
+  flex: 1;
+}
+
+/* Share button */
+.share-button {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.share-button:hover {
+  background-color: var(--border-light);
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
+/* Share popover */
+.share-popover {
+  position: absolute;
+  z-index: 2000;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  padding: 6px 0;
+  min-width: 180px;
+  font-size: 0.85rem;
+}
+
+.share-popover-title {
+  padding: 4px 14px 8px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 4px;
+}
+
+.share-popover-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  color: var(--text-primary);
+  text-decoration: none;
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.15s ease;
+}
+
+.share-popover-item:hover {
+  background-color: var(--border-light);
+}
+
+.share-icon-emoji {
+  font-size: 1rem;
+}
+
+/* Highlighted activity card (arrived via share link) */
+.activity-card.highlighted {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(83, 75, 174, 0.25), 0 8px 15px rgba(0, 0, 0, 0.1);
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
 }
 
 footer {
